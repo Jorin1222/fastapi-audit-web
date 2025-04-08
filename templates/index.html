@@ -1,0 +1,138 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>稽核認證量計算器</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link id="theme-style" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <style id="custom-style">
+        body.dark {
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        .dark .card {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            border: 1px solid #2c2c2c;
+        }
+        .dark .card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+            z-index: 2;
+        }
+        .dark .list-group-item {
+            background-color: #1e1e1e;
+            border-color: #333;
+            color: #e0e0e0;
+        }
+        .dark .text-muted {
+            color: #b0bec5 !important;
+        }
+        .dark .text-danger { color: #ff6b6b !important; }
+        .dark .text-primary { color: #90caf9 !important; }
+        .dark .btn-primary { background-color: #1976d2; border-color: #1976d2; }
+        .dark .btn-success { background-color: #388e3c; border-color: #388e3c; }
+        .dark .form-control {
+            background-color: #2c2c2c;
+            border: 1px solid #555;
+            color: #ffffff;
+        }
+
+        .card-body { min-height: 360px; overflow-wrap: break-word; word-break: break-word; }
+        .card-title, .list-group-item, small { overflow-wrap: break-word; word-break: break-word; }
+        .card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+        }
+    </style>
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle("dark");
+            localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
+        }
+        window.onload = function() {
+            if (localStorage.getItem("theme") === "dark") {
+                document.body.classList.add("dark");
+            }
+        }
+    </script>
+</head>
+<body>
+<div class="container-fluid py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary">📤 上傳 HTML 月報檔</h2>
+        <button class="btn btn-outline-secondary" onclick="toggleTheme()">🌙 深 / 淺主題切換</button>
+    </div>
+
+    <form action="/upload" method="post" enctype="multipart/form-data" class="mb-4">
+        <input type="file" name="files" multiple required class="form-control mb-2">
+        <button type="submit" class="btn btn-primary">開始計算</button>
+    </form>
+
+    {% if results %}
+    <h4 class="mb-3 text-success">✅ 計算結果</h4>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4">
+        {% for row in results %}
+        <div class="col d-flex">
+            <div class="card shadow-sm w-100 h-100 d-flex flex-column">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div>
+                        
+<h5 class="card-title text-primary">
+  {{ row['公司名稱'] if row.get('公司名稱') and row['公司名稱'].strip() else row['檔名'] }}
+</h5>
+
+                        <ul class="list-group list-group-flush mb-2">
+                            {% for k, v in row.items() %}
+                                {% if k not in ['檔名', '公司名稱', '再生料明細', '比率明細'] %}
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>{{ k }}</span>
+                                    <span class="fw-bold {{ 'text-danger' if k == '緩發條件' and '觸發' in v else '' }}">
+                                        {% if k == '補貼費率' %}
+                                            {{ "%.3f"|format(v) }}
+                                        {% else %}
+                                            {{ v | format_thousands }}
+                                        {% endif %}
+                                    </span>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                        <p class="mb-1"><strong>再生料明細：</strong><br><small class="text-muted">{{ row['再生料明細'] }}</small></p>
+                        {% if row['比率明細'] %}
+                        <div class="mt-3">
+                            <strong>📊 比率明細：</strong>
+                            <ul class="list-group list-group-flush">
+                                {% for mat, val in row['比率明細'].items() %}
+                                <li class="list-group-item">
+                                    <strong>{{ mat }}</strong>：產生量 {{ val['產生量'] | format_thousands }} kg，
+                                    庫存 {{ val['庫存量'] | format_thousands }} kg，
+                                    比率 {{ val['比率(%)'] | format_thousands }}%
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="mt-4">
+        
+    <div class="d-flex flex-wrap gap-2">
+        <a href="/download" class="btn btn-success">📥 下載 Excel</a>
+        <a href="/download/csv" class="btn btn-outline-info">📄 匯出 CSV</a>
+        <a href="/download/json" class="btn btn-outline-light">🧾 匯出 JSON</a>
+    </div>
+    
+    </div>
+    {% endif %}
+</div>
+</body>
+</html>
